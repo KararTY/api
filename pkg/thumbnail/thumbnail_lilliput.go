@@ -1,5 +1,3 @@
-// +build !windows
-
 package thumbnail
 
 import (
@@ -7,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/discord/lilliput"
+	"github.com/kararty/lilliput"
 )
 
 var (
@@ -15,6 +13,7 @@ var (
 		".jpeg": {lilliput.JpegQuality: 85},
 		".png":  {lilliput.PngCompression: 7},
 		".webp": {lilliput.WebpQuality: 85},
+		".gif":  {lilliput.PngCompression: 9},
 	}
 )
 
@@ -46,15 +45,10 @@ func buildThumbnailByteArray(inputBuf []byte, resp *http.Response) ([]byte, erro
 	// If the final image does not fit within this buffer, then we fall back to providing a static thumbnail
 	outputImg := make([]byte, 2*1024*1024)
 
-	// don't transcode (use existing type)
-	outputType := "." + strings.ToLower(decoder.Description())
-
-	// We want to default to no resizing.
-	resizeMethod := lilliput.ImageOpsNoResize
-
 	// Only trigger if original image has higher values than maxThumbnailSize
 	if newWidth > maxThumbnailSize || newHeight > maxThumbnailSize {
-		resizeMethod = lilliput.ImageOpsResize // We want to resize
+		// don't transcode (use existing type)
+		outputType := "." + strings.ToLower(decoder.Description())
 
 		/* Preserve aspect ratio is from previous module, thanks nfnt/resize.
 		 * (https://github.com/nfnt/resize/blob/83c6a9932646f83e3267f353373d47347b6036b2/thumbnail.go#L27)
@@ -76,20 +70,23 @@ func buildThumbnailByteArray(inputBuf []byte, resp *http.Response) ([]byte, erro
 			}
 			newHeight = maxThumbnailSize
 		}
-	}
 
-	opts := &lilliput.ImageOptions{
-		FileType:      outputType,
-		Width:         newWidth,
-		Height:        newHeight,
-		ResizeMethod:  resizeMethod,
-		EncodeOptions: encodeOptions[outputType],
-	}
+		opts := &lilliput.ImageOptions{
+			FileType:      outputType,
+			Width:         newWidth,
+			Height:        newHeight,
+			ResizeMethod:  lilliput.ImageOpsResize,
+			EncodeOptions: encodeOptions[outputType],
+		}
 
-	// resize and transcode image
-	outputImg, err = ops.Transform(decoder, opts, outputImg)
-	if err != nil {
-		return []byte{}, fmt.Errorf("could not transform image from url: %s", resp.Request.URL)
+		// resize and transcode image
+		outputImg, err = ops.Transform(decoder, opts, outputImg)
+		if err != nil {
+			return []byte{}, fmt.Errorf("could not transform image from url: %s", resp.Request.URL)
+		}
+	} else {
+		// We don't need to resize image nor does it need to be passed through lilliput.
+		outputImg = inputBuf
 	}
 
 	return outputImg, nil
