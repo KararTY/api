@@ -30,13 +30,13 @@ jobs:
           go get -v -t -d ./...
 
       - name: Build
-          if: matrix.os != 'windows-latest'
-          run: go build -ldflags="-s -w" -v -o ../../build/chatterino-api
+        if: matrix.os != 'windows-latest'
+        run: go build -ldflags="-s -w" -v -o ../../build/chatterino-api
         working-directory: cmd/api
 
-        - name: Build Windows
-          if: matrix.os == 'windows-latest'
-          run: go build -tags netgo -ldflags '-s -w -extldflags "-static"' -v -o ../../build/chatterino-api
+      - name: Build Windows
+        if: matrix.os == 'windows-latest'
+        run: go build -tags netgo -ldflags '-s -w -extldflags "-static"' -v -o ../../build/chatterino-api
         working-directory: cmd/api
 
       - name: Test
