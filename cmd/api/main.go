@@ -18,9 +18,6 @@ import (
 )
 
 var (
-	httpClient = &http.Client{
-		Timeout: 15 * time.Second,
-	}
 	startTime = time.Now()
 
 	prefix string
@@ -80,7 +77,9 @@ func main() {
 	}
 
 	twitchemotes.Initialize(router, helixClient, helixUsernameCache)
+	handleRoot(router)
 	handleHealth(router)
+	handleLegal(router)
 	defaultresolver.Initialize(router, cfg, helixClient)
 
 	listen(cfg.BindAddress, mountRouter(router, cfg))
